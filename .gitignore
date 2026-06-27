@@ -1,0 +1,7 @@
+node_modules/
+out/
+e2e/artifacts/
+.tmp/
+.wdio-vscode-cache/
+.wdio-vscode-cache
+*.vsix

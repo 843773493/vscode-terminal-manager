@@ -1,0 +1,409 @@
+{
+  "name": "vscode-terminal-manager",
+  "displayName": "VS Code Terminal Manager",
+  "description": "Manage workspace terminals, zellij sessions, and tmux sessions from the VS Code sidebar.",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:vscodeTerminalManager.workspace",
+    "onView:vscodeTerminalManager.zellij",
+    "onView:vscodeTerminalManager.tmux",
+    "onCommand:vscode-terminal-manager.openSidebar",
+    "onCommand:vscode-terminal-manager.refreshAll",
+    "onCommand:vscode-terminal-manager.dumpState",
+    "onCommand:vscode-terminal-manager.emitTestLog"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscode-terminal-manager.openSidebar",
+        "title": "打开终端管理器",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.refreshAll",
+        "title": "刷新全部终端状态",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.dumpState",
+        "title": "导出终端管理器状态",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.emitTestLog",
+        "title": "写入终端管理器测试日志",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.workspace.create",
+        "title": "新建 Tmux/Zellij 终端",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/plus.svg",
+          "dark": "resources/dark/plus.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.workspace.refresh",
+        "title": "刷新会话终端",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.workspace.toggleAutoSave",
+        "title": "切换自动记住会话终端",
+        "category": "Terminal Manager",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "vscode-terminal-manager.workspace.show",
+        "title": "显示会话终端",
+        "category": "Terminal Manager",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "vscode-terminal-manager.workspace.kill",
+        "title": "关闭会话终端",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.zellij.new",
+        "title": "新建 Zellij 会话",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/plus.svg",
+          "dark": "resources/dark/plus.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.zellij.attach",
+        "title": "附加到 Zellij 会话",
+        "category": "Terminal Manager",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "vscode-terminal-manager.zellij.kill",
+        "title": "结束 Zellij 会话",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.zellij.delete",
+        "title": "删除 Zellij 会话",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.zellij.refresh",
+        "title": "刷新 Zellij 会话",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.zellij.toggleAutoRefresh",
+        "title": "切换 Zellij 自动刷新",
+        "category": "Terminal Manager",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.new",
+        "title": "新建 Tmux 会话",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/plus.svg",
+          "dark": "resources/dark/plus.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.attach",
+        "title": "附加到 Tmux 目标",
+        "category": "Terminal Manager",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.rename",
+        "title": "重命名 Tmux 会话",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.renameWindow",
+        "title": "重命名 Tmux 窗口",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.newWindow",
+        "title": "新建 Tmux 窗口",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/plus.svg",
+          "dark": "resources/dark/plus.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.killSession",
+        "title": "结束 Tmux 会话",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.killWindow",
+        "title": "结束 Tmux 窗口",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.killPane",
+        "title": "结束 Tmux 面板",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.splitPaneRight",
+        "title": "向右拆分 Tmux 面板",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.splitPaneDown",
+        "title": "向下拆分 Tmux 面板",
+        "category": "Terminal Manager"
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.refresh",
+        "title": "刷新 Tmux 会话",
+        "category": "Terminal Manager",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "vscode-terminal-manager.tmux.toggleAutoRefresh",
+        "title": "切换 Tmux 自动刷新",
+        "category": "Terminal Manager",
+        "icon": "$(sync)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "terminalManager",
+          "title": "Terminal Manager",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "terminalManager": [
+        {
+          "id": "vscodeTerminalManager.workspace",
+          "name": "工作区终端管理"
+        },
+        {
+          "id": "vscodeTerminalManager.zellij",
+          "name": "Zellij 管理"
+        },
+        {
+          "id": "vscodeTerminalManager.tmux",
+          "name": "Tmux 管理"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "vscode-terminal-manager.workspace.create",
+          "when": "view == vscodeTerminalManager.workspace",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vscode-terminal-manager.workspace.refresh",
+          "when": "view == vscodeTerminalManager.workspace",
+          "group": "navigation@2"
+        },
+        {
+          "command": "vscode-terminal-manager.workspace.toggleAutoSave",
+          "when": "view == vscodeTerminalManager.workspace",
+          "group": "1_settings"
+        },
+        {
+          "command": "vscode-terminal-manager.zellij.new",
+          "when": "view == vscodeTerminalManager.zellij",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vscode-terminal-manager.zellij.refresh",
+          "when": "view == vscodeTerminalManager.zellij",
+          "group": "navigation@2"
+        },
+        {
+          "command": "vscode-terminal-manager.zellij.toggleAutoRefresh",
+          "when": "view == vscodeTerminalManager.zellij",
+          "group": "1_settings"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.new",
+          "when": "view == vscodeTerminalManager.tmux",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.refresh",
+          "when": "view == vscodeTerminalManager.tmux",
+          "group": "navigation@2"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.toggleAutoRefresh",
+          "when": "view == vscodeTerminalManager.tmux",
+          "group": "1_settings"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "vscode-terminal-manager.workspace.show",
+          "when": "view == vscodeTerminalManager.workspace && viewItem == workspaceTerminalOpen",
+          "group": "inline@1"
+        },
+        {
+          "command": "vscode-terminal-manager.workspace.kill",
+          "when": "view == vscodeTerminalManager.workspace && viewItem == workspaceTerminalOpen",
+          "group": "2_destructive"
+        },
+        {
+          "command": "vscode-terminal-manager.zellij.attach",
+          "when": "view == vscodeTerminalManager.zellij && viewItem == zellijSession",
+          "group": "inline@1"
+        },
+        {
+          "command": "vscode-terminal-manager.zellij.kill",
+          "when": "view == vscodeTerminalManager.zellij && viewItem == zellijSession",
+          "group": "2_destructive@1"
+        },
+        {
+          "command": "vscode-terminal-manager.zellij.delete",
+          "when": "view == vscodeTerminalManager.zellij && viewItem == zellijSession",
+          "group": "2_destructive@2"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.attach",
+          "when": "view == vscodeTerminalManager.tmux && (viewItem == tmuxSession || viewItem == tmuxWindow || viewItem == tmuxPane)",
+          "group": "inline@1"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.newWindow",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxSession",
+          "group": "inline@2"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.splitPaneRight",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxPane",
+          "group": "inline@2"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.rename",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxSession",
+          "group": "1_modification"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.renameWindow",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxWindow",
+          "group": "1_modification"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.splitPaneDown",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxPane",
+          "group": "1_modification"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.killSession",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxSession",
+          "group": "2_destructive"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.killWindow",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxWindow",
+          "group": "2_destructive"
+        },
+        {
+          "command": "vscode-terminal-manager.tmux.killPane",
+          "when": "view == vscodeTerminalManager.tmux && viewItem == tmuxPane",
+          "group": "2_destructive"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "VS Code Terminal Manager",
+      "properties": {
+        "vscodeTerminalManager.autoAttachRememberedTerminals": {
+          "type": "boolean",
+          "default": true,
+          "description": "Attach remembered tmux and zellij workspace terminals automatically when the workspace is opened."
+        },
+        "vscodeTerminalManager.autoSaveIntervalMs": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1000,
+          "description": "How often remembered tmux and zellij terminal state is saved."
+        },
+        "vscodeTerminalManager.autoRefreshIntervalMs": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1000,
+          "description": "How often tmux and zellij session trees are refreshed."
+        },
+        "vscodeTerminalManager.logToOutput": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mirror extension diagnostics into the VS Code Output channel."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "start": "node scripts/open-dev-host.mjs",
+    "open:dev": "node scripts/open-dev-host.mjs",
+    "e2e": "node scripts/run-e2e.mjs",
+    "e2e:trace": "node scripts/run-e2e.mjs trace",
+    "e2e:debug": "node scripts/run-e2e.mjs debug",
+    "artifacts:latest": "node scripts/inspect-latest-run.mjs",
+    "clean": "node scripts/clean.mjs build",
+    "clean:artifacts": "node scripts/clean.mjs artifacts",
+    "clean:cache": "node scripts/clean.mjs cache",
+    "clean:all": "node scripts/clean.mjs all"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/vscode": "^1.101.0",
+    "@wdio/cli": "9.29.1",
+    "@wdio/devtools-service": "10.6.1",
+    "@wdio/globals": "9.29.1",
+    "@wdio/json-reporter": "9.29.1",
+    "@wdio/logger": "9.29.1",
+    "@wdio/local-runner": "9.29.1",
+    "@wdio/mocha-framework": "9.29.1",
+    "@wdio/protocols": "9.28.0",
+    "@wdio/spec-reporter": "9.29.1",
+    "expect-webdriverio": "5.6.9",
+    "typescript": "^5.8.3",
+    "wdio-vscode-service": "8.0.0",
+    "webdriverio": "9.29.1"
+  }
+}

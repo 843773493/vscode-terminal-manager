@@ -1,0 +1,5 @@
+依据vscode-terminal-manager/AGENTS.md，复制vscode-auto-test模板仓库到vscode-terminal-manager（除了AGENTS.md），参考vscode-terminal-manager的代码和资产
+你来在vscode-terminal-manager里面实现一个通用的vscode终端管理器插件，ui参考vscode-tmux-manager，但额外加一个zellij管理，以及工作区终端管理。按钮复制使用vscode-tmux-manager/resources里的资源来作为图标，不够就自己画。
+以zellij为例，工作区终端管理板块要能定时自动保存从vscode当前工作区启动的zellij相关参数状态，当用户关闭vscode后再次打开/ssh连上时，配置里有个可选参数（默认为True）自动还原终端状态，比例终端退出前可能是在编辑器，也可能是在面板中，这些细节详细查看vscode的说明，确保没有遗漏。每当我用终端指令或者ui按钮创建zellij时，zellij管理和工作区终端管理区域都应该及时自动刷新看到出我新建的终端。tmux同理。当前ui有3个板块，工作区终端管理、zellij管理、tmux管理，注意工作区终端管理的按钮功能不全和另外两个一样。
+
+项目最终需要模板仓库提供的e2e测试方案，来测试运行时的后端和ui的各种状态，全通过后验收。
