@@ -2,6 +2,8 @@
 
 一个 VS Code 侧边栏扩展，用三个原生 TreeView 管理：
 
+![VS Code Terminal Manager 侧边栏界面](media/base-ui.png)
+
 - 工作区终端管理：只记住从当前工作区管理的 tmux/zellij 会话终端，保存名称、cwd、shell、panel/editor 创建位置、会话名和最近 shell 命令。重新打开工作区时默认按原位置自动附加这些终端。普通 VS Code 终端由 VS Code 自带终端面板管理，不进入本扩展视图。
 - Zellij 管理：列出 zellij 会话，支持新建、附加、结束、删除和自动刷新。
 - Tmux 管理：列出 tmux session/window/pane 树，支持新建、附加、重命名、窗口/面板操作、结束和自动刷新。

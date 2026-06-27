@@ -3,15 +3,31 @@
   "displayName": "VS Code Terminal Manager",
   "description": "Manage workspace terminals, zellij sessions, and tmux sessions from the VS Code sidebar.",
   "version": "0.0.1",
-  "private": true,
+  "publisher": "843773493",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/843773493/vscode-terminal-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/843773493/vscode-terminal-manager/issues"
+  },
+  "homepage": "https://github.com/843773493/vscode-terminal-manager#readme",
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.101.0"
   },
   "extensionKind": [
     "workspace"
   ],
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "terminal",
+    "tmux",
+    "zellij",
+    "workspace",
+    "remote"
   ],
   "activationEvents": [
     "onStartupFinished",
