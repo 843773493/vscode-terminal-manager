@@ -2,6 +2,7 @@
 .vscode/
 .wdio-vscode-cache
 .tmp/
+dist/
 *.vsix
 
 AGENTS.md

@@ -394,6 +394,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run compile",
+    "package:vsix": "npx --yes @vscode/vsce package --out dist/vscode-terminal-manager-0.0.1.vsix",
     "start": "node scripts/open-dev-host.mjs",
     "open:dev": "node scripts/open-dev-host.mjs",
     "e2e": "node scripts/run-e2e.mjs",
