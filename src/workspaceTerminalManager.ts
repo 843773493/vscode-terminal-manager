@@ -211,6 +211,89 @@ export class WorkspaceTerminalManager implements vscode.TreeDataProvider<Workspa
     return unregistered;
   }
 
+  public async renameSession(
+    kind: MultiplexerKind,
+    oldSessionName: string,
+    newSessionName: string,
+    reason = 'manual'
+  ): Promise<number> {
+    if (oldSessionName === newSessionName) {
+      return 0;
+    }
+
+    const savedAt = nowIso();
+    const renamedIds = new Set<string>();
+    for (const record of this.activeRecords.values()) {
+      if (record.snapshot.kind !== kind || record.snapshot.sessionName !== oldSessionName) {
+        continue;
+      }
+
+      record.snapshot.sessionName = newSessionName;
+      record.snapshot.name = terminalName(kind, newSessionName);
+      record.snapshot.savedAt = savedAt;
+      renamedIds.add(record.snapshot.id);
+    }
+
+    const renamedSnapshots = this.registeredSnapshots.map((snapshot) => {
+      if (snapshot.kind !== kind || snapshot.sessionName !== oldSessionName) {
+        return snapshot;
+      }
+
+      renamedIds.add(snapshot.id);
+      return {
+        ...snapshot,
+        name: terminalName(kind, newSessionName),
+        sessionName: newSessionName,
+        savedAt
+      };
+    });
+
+    this.registeredSnapshots = mergeRegisteredSnapshots(renamedSnapshots, this.activeSnapshots());
+    await this.context.workspaceState.update(WORKSPACE_TERMINAL_STATE_KEY, this.registeredSnapshots);
+    this.refreshView();
+    this.record('workspace.session.renamed', {
+      kind,
+      oldSessionName,
+      newSessionName,
+      reason,
+      renamed: renamedIds.size
+    });
+    return renamedIds.size;
+  }
+
+  public async closeSessionTerminals(kind: MultiplexerKind, sessionName: string, reason = 'manual'): Promise<number> {
+    const closedSnapshots: WorkspaceTerminalSnapshot[] = [];
+    for (const [terminal, record] of this.activeRecords) {
+      if (record.snapshot.kind !== kind || record.snapshot.sessionName !== sessionName) {
+        continue;
+      }
+
+      const closedAt = nowIso();
+      record.snapshot.isOpen = false;
+      record.snapshot.closedAt = closedAt;
+      record.snapshot.savedAt = closedAt;
+      this.activeRecords.delete(terminal);
+      this.ignoredTerminals.add(terminal);
+      closedSnapshots.push(record.snapshot);
+      terminal.dispose();
+    }
+
+    if (closedSnapshots.length === 0) {
+      return 0;
+    }
+
+    this.registeredSnapshots = mergeRegisteredSnapshots(this.registeredSnapshots, closedSnapshots);
+    await this.context.workspaceState.update(WORKSPACE_TERMINAL_STATE_KEY, this.registeredSnapshots);
+    this.refreshView();
+    this.record('workspace.session.terminalsClosed', {
+      kind,
+      sessionName,
+      reason,
+      count: closedSnapshots.length
+    });
+    return closedSnapshots.length;
+  }
+
   public async saveNow(reason = 'manual'): Promise<void> {
     const merged = mergeRegisteredSnapshots(this.registeredSnapshots, this.activeSnapshots());
     this.registeredSnapshots = pruneSnapshots(merged);
@@ -597,9 +680,12 @@ function terminalName(kind: WorkspaceTerminalKind, sessionName?: string): string
 function attachCommandFor(
   kind: WorkspaceTerminalKind,
   sessionName?: string,
-  mode: 'attach' | 'createOrAttach' = 'createOrAttach'
+  mode: 'attach' | 'createOrAttach' | 'none' = 'createOrAttach'
 ): string | undefined {
   if (!sessionName) {
+    return undefined;
+  }
+  if (mode === 'none') {
     return undefined;
   }
   if (kind === 'zellij') {

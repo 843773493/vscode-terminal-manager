@@ -42,6 +42,12 @@ export class ZellijService {
     await this.refresh();
   }
 
+  public async renameSession(oldName: string, newName: string): Promise<void> {
+    await this.requireZellij();
+    await execFileText('zellij', ['--session', oldName, 'action', 'rename-session', newName]);
+    await this.refresh();
+  }
+
   public async killSession(sessionName: string): Promise<void> {
     await this.requireZellij();
     try {

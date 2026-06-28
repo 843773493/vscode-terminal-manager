@@ -51,6 +51,22 @@ function run(command, args, options = {}) {
 function wdioEnv() {
   const env = { ...process.env };
 
+  delete env.ELECTRON_RUN_AS_NODE;
+  delete env.VSCODE_ESM_ENTRYPOINT;
+  delete env.VSCODE_CRASH_REPORTER_PROCESS_TYPE;
+  delete env.VSCODE_HANDLES_UNCAUGHT_ERRORS;
+  delete env.VSCODE_IPC_HOOK;
+  delete env.VSCODE_IPC_HOOK_CLI;
+  delete env.VSCODE_NLS_CONFIG;
+  delete env.VSCODE_PID;
+
+  if (env.WDIO_WORKER_ID) {
+    delete env.WDIO_ARTIFACTS_DIR;
+    delete env.WDIO_LOG_PATH;
+    delete env.WDIO_RUN_ID;
+    delete env.WDIO_WORKER_ID;
+  }
+
   if (env.WDIO_KEEP_PROXY === '1') {
     return env;
   }

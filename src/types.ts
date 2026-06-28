@@ -103,5 +103,5 @@ export interface CreateTerminalRequest {
   cwd?: string;
   reveal?: boolean;
   location?: SavedTerminalLocation;
-  attachMode?: 'attach' | 'createOrAttach';
+  attachMode?: 'attach' | 'createOrAttach' | 'none';
 }

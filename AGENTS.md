@@ -121,18 +121,18 @@ Avoid moving business logic back into `extension.ts`.
 
 `package.json` declares the public extension surface:
 
-- Activity Bar container: `terminalManager`
+- Activity Bar container: `workspaceSessionTerminals`
 - TreeViews:
-  - `vscodeTerminalManager.workspace`
-  - `vscodeTerminalManager.zellij`
-  - `vscodeTerminalManager.tmux`
+  - `workspaceSessionTerminals.workspace`
+  - `workspaceSessionTerminals.zellij`
+  - `workspaceSessionTerminals.tmux`
 - Main commands:
-  - `vscode-terminal-manager.openSidebar`
-  - `vscode-terminal-manager.refreshAll`
-  - `vscode-terminal-manager.dumpState`
-  - `vscode-terminal-manager.workspace.*`
-  - `vscode-terminal-manager.zellij.*`
-  - `vscode-terminal-manager.tmux.*`
+  - `workspace-session-terminals.openSidebar`
+  - `workspace-session-terminals.refreshAll`
+  - `workspace-session-terminals.dumpState`
+  - `workspace-session-terminals.workspace.*`
+  - `workspace-session-terminals.zellij.*`
+  - `workspace-session-terminals.tmux.*`
 
 When changing public IDs, update `package.json`, `src/constants.ts`, and `test/e2e/support/extension-contract.mjs` together.
 
@@ -150,7 +150,7 @@ The workspace terminal manager uses VS Code terminal APIs:
 VS Code one-click debug:
 
 - Open this folder in VS Code.
-- Run and Debug: `Debug VS Code Terminal Manager Extension`.
+- Run and Debug: `Debug Workspace Session Terminals Extension`.
 - F5 runs `npm run compile`, then starts an isolated Extension Development Host.
 
 Command-line dev host:
@@ -226,7 +226,7 @@ During E2E this is under:
 e2e/artifacts/<run-id>/vscode-storage/settings/User/globalStorage/...
 ```
 
-The same events are mirrored to the VS Code Output Channel named `VS Code Terminal Manager` when `vscodeTerminalManager.logToOutput` is enabled.
+The same events are mirrored to the VS Code Output Channel named `Workspace Session Terminals` when `workspaceSessionTerminals.logToOutput` is enabled.
 
 ## Cleanup
 

@@ -60,7 +60,7 @@ export async function openSidebar() {
       && text.includes('tmux 管理');
   }, {
     timeout: 15000,
-    timeoutMsg: 'Terminal Manager views did not become visible'
+    timeoutMsg: 'Workspace Session Terminals views did not become visible'
   });
 }
 

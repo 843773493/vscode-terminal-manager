@@ -1,10 +1,10 @@
-export const EXTENSION_ID = 'vscode-terminal-manager';
-export const VIEW_CONTAINER_ID = 'terminalManager';
-export const WORKSPACE_VIEW_ID = 'vscodeTerminalManager.workspace';
-export const ZELLIJ_VIEW_ID = 'vscodeTerminalManager.zellij';
-export const TMUX_VIEW_ID = 'vscodeTerminalManager.tmux';
-export const CONFIG_SECTION = 'vscodeTerminalManager';
-export const OUTPUT_CHANNEL_NAME = 'VS Code Terminal Manager';
+export const EXTENSION_ID = 'workspace-session-terminals';
+export const VIEW_CONTAINER_ID = 'workspaceSessionTerminals';
+export const WORKSPACE_VIEW_ID = 'workspaceSessionTerminals.workspace';
+export const ZELLIJ_VIEW_ID = 'workspaceSessionTerminals.zellij';
+export const TMUX_VIEW_ID = 'workspaceSessionTerminals.tmux';
+export const CONFIG_SECTION = 'workspaceSessionTerminals';
+export const OUTPUT_CHANNEL_NAME = 'Workspace Session Terminals';
 
 export const COMMANDS = {
   openSidebar: `${EXTENSION_ID}.openSidebar`,
@@ -20,6 +20,7 @@ export const COMMANDS = {
   workspaceKill: `${EXTENSION_ID}.workspace.kill`,
   zellijNew: `${EXTENSION_ID}.zellij.new`,
   zellijAttach: `${EXTENSION_ID}.zellij.attach`,
+  zellijRename: `${EXTENSION_ID}.zellij.rename`,
   zellijKill: `${EXTENSION_ID}.zellij.kill`,
   zellijDelete: `${EXTENSION_ID}.zellij.delete`,
   zellijRefresh: `${EXTENSION_ID}.zellij.refresh`,

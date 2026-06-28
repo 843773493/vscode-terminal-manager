@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug VS Code Terminal Manager Extension",
+      "name": "Debug Workspace Session Terminals Extension",
       "type": "extensionHost",
       "request": "launch",
       "preLaunchTask": "npm: compile",

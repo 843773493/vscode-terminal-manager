@@ -17,8 +17,11 @@ import { ZellijSessionTreeItem, ZellijTreeProvider } from './zellijTreeProvider'
 
 type SessionCommandArg = string | {
   sessionName?: string;
+  newName?: string;
   reveal?: boolean;
   confirm?: boolean;
+  attachMode?: CreateTerminalRequest['attachMode'];
+  closeTerminals?: boolean;
 };
 
 export class TerminalManagerController implements vscode.Disposable {
@@ -92,13 +95,14 @@ export class TerminalManagerController implements vscode.Disposable {
       vscode.commands.registerCommand(COMMANDS.workspaceKill, (item?: WorkspaceTerminalTreeItem) => this.workspaceKill(item)),
       vscode.commands.registerCommand(COMMANDS.zellijNew, (arg?: SessionCommandArg) => this.zellijNew(arg)),
       vscode.commands.registerCommand(COMMANDS.zellijAttach, (arg?: ZellijSessionTreeItem | SessionCommandArg) => this.zellijAttach(arg)),
+      vscode.commands.registerCommand(COMMANDS.zellijRename, (arg?: ZellijSessionTreeItem | SessionCommandArg) => this.zellijRename(arg)),
       vscode.commands.registerCommand(COMMANDS.zellijKill, (arg?: ZellijSessionTreeItem | SessionCommandArg) => this.zellijKill(arg)),
       vscode.commands.registerCommand(COMMANDS.zellijDelete, (arg?: ZellijSessionTreeItem | SessionCommandArg) => this.zellijDelete(arg)),
       vscode.commands.registerCommand(COMMANDS.zellijRefresh, () => this.zellijRefresh()),
       vscode.commands.registerCommand(COMMANDS.zellijToggleAutoRefresh, () => this.zellijToggleAutoRefresh()),
       vscode.commands.registerCommand(COMMANDS.tmuxNew, (arg?: SessionCommandArg) => this.tmuxNew(arg)),
       vscode.commands.registerCommand(COMMANDS.tmuxAttach, (item?: TmuxSessionTreeItem | TmuxWindowTreeItem | TmuxPaneTreeItem | SessionCommandArg) => this.tmuxAttach(item)),
-      vscode.commands.registerCommand(COMMANDS.tmuxRename, (item?: TmuxSessionTreeItem) => this.tmuxRename(item)),
+      vscode.commands.registerCommand(COMMANDS.tmuxRename, (item?: TmuxSessionTreeItem | SessionCommandArg) => this.tmuxRename(item)),
       vscode.commands.registerCommand(COMMANDS.tmuxRenameWindow, (item?: TmuxWindowTreeItem) => this.tmuxRenameWindow(item)),
       vscode.commands.registerCommand(COMMANDS.tmuxNewWindow, (item?: TmuxSessionTreeItem) => this.tmuxNewWindow(item)),
       vscode.commands.registerCommand(COMMANDS.tmuxKillSession, (item?: TmuxSessionTreeItem | SessionCommandArg) => this.tmuxKillSession(item)),
@@ -208,7 +212,7 @@ export class TerminalManagerController implements vscode.Disposable {
         kind: 'zellij',
         sessionName,
         reveal: revealFromArg(arg),
-        attachMode: 'attach'
+        attachMode: attachModeFromArg(arg) ?? 'attach'
       });
       await this.zellijProvider.refreshNow();
       this.status = `Created zellij session ${sessionName}`;
@@ -233,11 +237,33 @@ export class TerminalManagerController implements vscode.Disposable {
     return this.getState();
   }
 
+  private async zellijRename(arg?: ZellijSessionTreeItem | SessionCommandArg): Promise<TerminalManagerState> {
+    await this.runCommand('command.zellijRename', async () => {
+      const sessionName = await this.resolveZellijSessionFromArg(arg);
+      if (!sessionName) {
+        return;
+      }
+      const newName = await this.resolveRenameSessionName('zellij', sessionName, arg);
+      if (!newName || newName === sessionName) {
+        return;
+      }
+
+      await this.zellijService.renameSession(sessionName, newName);
+      await this.workspaceManager.renameSession('zellij', sessionName, newName, 'zellij.rename');
+      await this.zellijProvider.refreshNow();
+      this.status = `Renamed zellij session ${sessionName} to ${newName}`;
+    });
+    return this.getState();
+  }
+
   private async zellijKill(arg?: ZellijSessionTreeItem | SessionCommandArg): Promise<TerminalManagerState> {
     await this.runCommand('command.zellijKill', async () => {
       const sessionName = await this.resolveZellijSessionFromArg(arg);
       if (!sessionName || !(await this.confirmDestructive('结束', 'zellij', sessionName, arg))) {
         return;
+      }
+      if (closeTerminalsFromArg(arg)) {
+        await this.workspaceManager.closeSessionTerminals('zellij', sessionName, 'zellij.kill');
       }
       await this.zellijService.killSession(sessionName);
       await this.workspaceManager.unregisterSession('zellij', sessionName, 'zellij.kill');
@@ -252,6 +278,9 @@ export class TerminalManagerController implements vscode.Disposable {
       const sessionName = await this.resolveZellijSessionFromArg(arg);
       if (!sessionName || !(await this.confirmDestructive('删除', 'zellij', sessionName, arg))) {
         return;
+      }
+      if (closeTerminalsFromArg(arg)) {
+        await this.workspaceManager.closeSessionTerminals('zellij', sessionName, 'zellij.delete');
       }
       await this.zellijService.deleteSession(sessionName);
       await this.workspaceManager.unregisterSession('zellij', sessionName, 'zellij.delete');
@@ -288,7 +317,7 @@ export class TerminalManagerController implements vscode.Disposable {
         kind: 'tmux',
         sessionName,
         reveal: revealFromArg(arg),
-        attachMode: 'attach'
+        attachMode: attachModeFromArg(arg) ?? 'attach'
       });
       await this.tmuxProvider.refreshNow();
       this.status = `Created tmux session ${sessionName}`;
@@ -321,23 +350,22 @@ export class TerminalManagerController implements vscode.Disposable {
     return this.getState();
   }
 
-  private async tmuxRename(item?: TmuxSessionTreeItem): Promise<TerminalManagerState> {
+  private async tmuxRename(item?: TmuxSessionTreeItem | SessionCommandArg): Promise<TerminalManagerState> {
     await this.runCommand('command.tmuxRename', async () => {
-      if (!item) {
-        vscode.window.showWarningMessage('请选择要重命名的 tmux 会话。');
+      const sessionName = item instanceof TmuxSessionTreeItem
+        ? item.session.name
+        : await this.resolveSessionName('tmux', item, false) ?? await this.pickTmuxSession();
+      if (!sessionName) {
         return;
       }
-      const newName = await vscode.window.showInputBox({
-        prompt: `重命名 tmux 会话 ${item.session.name}`,
-        value: item.session.name,
-        validateInput: (value) => value.trim() ? undefined : '会话名称不能为空。'
-      });
-      if (!newName || newName === item.session.name) {
+      const newName = await this.resolveRenameSessionName('tmux', sessionName, item);
+      if (!newName || newName === sessionName) {
         return;
       }
-      await this.tmuxService.renameSession(item.session.name, newName);
+      await this.tmuxService.renameSession(sessionName, newName);
+      await this.workspaceManager.renameSession('tmux', sessionName, newName, 'tmux.rename');
       await this.tmuxProvider.refreshNow();
-      this.status = `Renamed tmux session ${item.session.name} to ${newName}`;
+      this.status = `Renamed tmux session ${sessionName} to ${newName}`;
     });
     return this.getState();
   }
@@ -386,6 +414,9 @@ export class TerminalManagerController implements vscode.Disposable {
         : await this.resolveSessionName('tmux', item, false);
       if (!sessionName || !(await this.confirmDestructive('结束', 'tmux', sessionName, item))) {
         return;
+      }
+      if (closeTerminalsFromArg(item)) {
+        await this.workspaceManager.closeSessionTerminals('tmux', sessionName, 'tmux.killSession');
       }
       await this.tmuxService.killSession(sessionName);
       await this.workspaceManager.unregisterSession('tmux', sessionName, 'tmux.killSession');
@@ -541,6 +572,29 @@ export class TerminalManagerController implements vscode.Disposable {
     });
   }
 
+  private async resolveRenameSessionName(
+    kind: MultiplexerKind,
+    sessionName: string,
+    arg?: ZellijSessionTreeItem | TmuxSessionTreeItem | SessionCommandArg
+  ): Promise<string | undefined> {
+    const directName = newNameFromArg(arg);
+    if (directName !== undefined) {
+      const trimmed = directName.trim();
+      if (!trimmed) {
+        vscode.window.showWarningMessage('新会话名称不能为空。');
+        return undefined;
+      }
+      return trimmed;
+    }
+
+    const picked = await vscode.window.showInputBox({
+      prompt: `重命名 ${kind} 会话 ${sessionName}`,
+      value: sessionName,
+      validateInput: (value) => value.trim() ? undefined : '会话名称不能为空。'
+    });
+    return picked?.trim();
+  }
+
   private async resolveZellijSessionFromArg(arg?: ZellijSessionTreeItem | SessionCommandArg): Promise<string | undefined> {
     if (arg instanceof ZellijSessionTreeItem) {
       return arg.session.name;
@@ -613,6 +667,30 @@ function revealFromArg(arg: unknown): boolean {
     return arg.reveal;
   }
   return true;
+}
+
+function attachModeFromArg(arg: unknown): CreateTerminalRequest['attachMode'] | undefined {
+  if (typeof arg === 'object' && arg !== null && 'attachMode' in arg) {
+    const mode = arg.attachMode;
+    if (mode === 'attach' || mode === 'createOrAttach' || mode === 'none') {
+      return mode;
+    }
+  }
+  return undefined;
+}
+
+function closeTerminalsFromArg(arg: unknown): boolean {
+  if (typeof arg === 'object' && arg !== null && 'closeTerminals' in arg && typeof arg.closeTerminals === 'boolean') {
+    return arg.closeTerminals;
+  }
+  return true;
+}
+
+function newNameFromArg(arg: unknown): string | undefined {
+  if (typeof arg === 'object' && arg !== null && 'newName' in arg && typeof arg.newName === 'string') {
+    return arg.newName;
+  }
+  return undefined;
 }
 
 export function attachCommandPreview(kind: MultiplexerKind, sessionName: string): string {

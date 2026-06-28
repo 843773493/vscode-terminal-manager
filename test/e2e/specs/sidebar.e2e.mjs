@@ -9,14 +9,20 @@ import {
   switchToTopFrame
 } from '../support/diagnostics.mjs';
 
-describe('Terminal Manager extension', () => {
+describe('Workspace Session Terminals extension', () => {
   beforeEach(async () => {
     await browser.getWorkbench();
     await openSidebar();
   });
 
   afterEach(async () => {
-    await switchToTopFrame();
+    try {
+      await switchToTopFrame();
+    } catch (error) {
+      if (!isClosedBrowserSessionError(error)) {
+        throw error;
+      }
+    }
   });
 
   it('opens the terminal manager sidebar and captures native TreeView UI', async () => {
@@ -88,17 +94,17 @@ describe('Terminal Manager extension', () => {
   it('creates and cleans real tmux/zellij sessions when the backends are available', async () => {
     const runId = Date.now();
     const tmuxName = `vtm-e2e-tmux-${runId}`;
+    const tmuxRenamedName = `${tmuxName}-renamed`;
     const zellijName = `vtm-e2e-zellij-${runId}`;
+    const zellijRenamedName = `${zellijName}-renamed`;
     const initialState = await dumpExtensionState();
-    let tmuxKilled = false;
-    let zellijDeleted = false;
 
     try {
       if (initialState.tmux.installed) {
         await browser.executeWorkbench(
           (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
           COMMANDS.tmuxNew,
-          { sessionName: tmuxName, reveal: false }
+          { sessionName: tmuxName, reveal: false, attachMode: 'none' }
         );
         await browser.waitUntil(async () => {
           const state = await dumpExtensionState();
@@ -108,13 +114,29 @@ describe('Terminal Manager extension', () => {
           timeout: 20000,
           timeoutMsg: 'tmux session was not reflected in tmux and workspace state'
         });
+
+        await browser.executeWorkbench(
+          (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
+          COMMANDS.tmuxRename,
+          { sessionName: tmuxName, newName: tmuxRenamedName }
+        );
+        await browser.waitUntil(async () => {
+          const state = await dumpExtensionState();
+          return state.tmux.sessions.some((session) => session.name === tmuxRenamedName)
+            && !state.tmux.sessions.some((session) => session.name === tmuxName)
+            && state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'tmux' && terminal.sessionName === tmuxRenamedName)
+            && !state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'tmux' && terminal.sessionName === tmuxName);
+        }, {
+          timeout: 20000,
+          timeoutMsg: 'tmux session rename was not reflected in tmux and workspace state'
+        });
       }
 
       if (initialState.zellij.installed) {
         await browser.executeWorkbench(
           (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
           COMMANDS.zellijNew,
-          { sessionName: zellijName, reveal: false }
+          { sessionName: zellijName, reveal: false, attachMode: 'none' }
         );
         await browser.waitUntil(async () => {
           const state = await dumpExtensionState();
@@ -124,51 +146,36 @@ describe('Terminal Manager extension', () => {
           timeout: 20000,
           timeoutMsg: 'zellij session was not reflected in zellij and workspace state'
         });
+
+        await browser.executeWorkbench(
+          (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
+          COMMANDS.zellijRename,
+          { sessionName: zellijName, newName: zellijRenamedName }
+        );
+        await browser.waitUntil(async () => {
+          const state = await dumpExtensionState();
+          return state.zellij.sessions.some((session) => session.name === zellijRenamedName)
+            && !state.zellij.sessions.some((session) => session.name === zellijName)
+            && state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijRenamedName)
+            && !state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijName);
+        }, {
+          timeout: 20000,
+          timeoutMsg: 'zellij session rename was not reflected in zellij and workspace state'
+        });
       }
 
       const finalState = await dumpExtensionState();
       assert.ok(initialState.tmux.installed || initialState.zellij.installed || finalState.events.length > 0);
-      await collectUiSnapshot('terminal-manager-after-create');
-
-      if (initialState.tmux.installed) {
-        await browser.executeWorkbench(
-          (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
-          COMMANDS.tmuxKillSession,
-          { sessionName: tmuxName, confirm: false }
-        );
-        tmuxKilled = true;
-        await browser.waitUntil(async () => {
-          const state = await dumpExtensionState();
-          return !state.tmux.sessions.some((session) => session.name === tmuxName)
-            && !state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'tmux' && terminal.sessionName === tmuxName);
-        }, {
-          timeout: 20000,
-          timeoutMsg: 'tmux session was not killed from tmux and workspace state'
-        });
-      }
-
-      if (initialState.zellij.installed) {
-        await browser.executeWorkbench(
-          (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
-          COMMANDS.zellijDelete,
-          { sessionName: zellijName, confirm: false }
-        );
-        zellijDeleted = true;
-        await browser.waitUntil(async () => {
-          const state = await dumpExtensionState();
-          return !state.zellij.sessions.some((session) => session.name === zellijName)
-            && !state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijName);
-        }, {
-          timeout: 20000,
-          timeoutMsg: 'zellij session was not deleted from zellij and workspace state'
-        });
-      }
     } finally {
-      if (initialState.tmux.installed && !tmuxKilled) {
+      if (initialState.tmux.installed) {
         cleanupExternal('tmux', ['kill-session', '-t', tmuxName]);
+        cleanupExternal('tmux', ['kill-session', '-t', tmuxRenamedName]);
       }
-      if (initialState.zellij.installed && !zellijDeleted) {
+      if (initialState.zellij.installed) {
         cleanupExternal('zellij', ['delete-session', '--force', zellijName]);
+        cleanupExternal('zellij', ['kill-session', zellijName]);
+        cleanupExternal('zellij', ['delete-session', '--force', zellijRenamedName]);
+        cleanupExternal('zellij', ['kill-session', zellijRenamedName]);
       }
     }
   });
@@ -180,4 +187,12 @@ function cleanupExternal(command, args) {
   } catch {
     // Best-effort cleanup for tests where the VS Code renderer is already gone.
   }
+}
+
+function isClosedBrowserSessionError(error) {
+  const message = String(error?.message ?? error);
+  return message.includes('invalid session id')
+    || message.includes('not connected to DevTools')
+    || message.includes('Connection closed')
+    || message.includes('Channel has been closed');
 }

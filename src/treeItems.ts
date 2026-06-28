@@ -5,6 +5,6 @@ export class MessageTreeItem extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.description = description;
     this.iconPath = new vscode.ThemeIcon('info');
-    this.contextValue = 'terminalManagerMessage';
+    this.contextValue = 'workspaceSessionTerminalsMessage';
   }
 }

@@ -1,4 +1,5 @@
 .git/
+.gitignore
 .vscode/
 .wdio-vscode-cache
 .tmp/

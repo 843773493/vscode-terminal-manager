@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Workspace Session Terminals icon">
+  <defs>
+    <linearGradient id="bg" x1="17" y1="12" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#172C49"/>
+      <stop offset="0.56" stop-color="#0E6F70"/>
+      <stop offset="1" stop-color="#081A2C"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="28" y1="38" x2="99" y2="98" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#132D47"/>
+      <stop offset="1" stop-color="#071421"/>
+    </linearGradient>
+    <filter id="panel-shadow" x="12" y="24" width="104" height="92" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#061421" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)"/>
+  <path d="M17 91C34 76 50 75 68 89C82 100 99 100 115 87V120H17Z" fill="#38E0C0" opacity="0.14"/>
+  <path d="M75 11C91 19 105 33 118 54V12Z" fill="#F4CC4D" opacity="0.17"/>
+  <path d="M15 54C32 35 55 20 87 15" fill="none" stroke="#6CE8D4" stroke-width="4" stroke-linecap="round" opacity="0.18"/>
+
+  <g opacity="0.42">
+    <path d="M90 33C101 41 107 54 107 68" fill="none" stroke="#F4CC4D" stroke-width="4" stroke-linecap="round"/>
+    <path d="M77 96C68 102 58 105 48 105" fill="none" stroke="#6CE8D4" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="91" cy="31" r="6" fill="#F4CC4D"/>
+    <circle cx="107" cy="70" r="6" fill="#6CE8D4"/>
+    <circle cx="47" cy="105" r="6" fill="#E9FFFB"/>
+  </g>
+
+  <g filter="url(#panel-shadow)">
+    <rect x="24" y="36" width="80" height="62" rx="12" fill="url(#screen)"/>
+    <path d="M36 36H92C98.627 36 104 41.373 104 48V54H24V48C24 41.373 29.373 36 36 36Z" fill="#1B3D5C"/>
+    <circle cx="38" cy="45" r="3.2" fill="#FF6B6B"/>
+    <circle cx="49" cy="45" r="3.2" fill="#F4CC4D"/>
+    <circle cx="60" cy="45" r="3.2" fill="#6CE8D4"/>
+    <path d="M42 64L53 73L42 82" fill="none" stroke="#E9FFFB" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M61 83H86" fill="none" stroke="#F4CC4D" stroke-width="6" stroke-linecap="round"/>
+    <rect x="70" y="62" width="19" height="11" rx="3" fill="none" stroke="#6CE8D4" stroke-width="3" opacity="0.76"/>
+    <rect x="70" y="77" width="19" height="11" rx="3" fill="none" stroke="#6CE8D4" stroke-width="3" opacity="0.42"/>
+  </g>
+
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="none" stroke="#D7FFF8" stroke-width="2" opacity="0.18"/>
+</svg>
