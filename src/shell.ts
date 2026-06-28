@@ -1,23 +1,45 @@
 import type { MultiplexerCommandObservation, MultiplexerKind, SavedTerminalLocation } from './types';
 
-export function quoteForShell(value: string): string {
+export type TerminalShellFlavor = 'posix' | 'powershell';
+
+export function quoteForPosixShell(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-export function buildTmuxAttachCommand(sessionName: string): string {
-  return `tmux new-session -A -s ${quoteForShell(sessionName)}`;
+export function quoteForPowerShell(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
 }
 
-export function buildTmuxExistingSessionAttachCommand(sessionName: string): string {
-  return `tmux attach -t ${quoteForShell(sessionName)}`;
+export function terminalShellFlavor(shellPath: string | undefined, platform = process.platform): TerminalShellFlavor {
+  if (platform === 'win32') {
+    return 'powershell';
+  }
+  if (shellPath && /(?:^|[\\/])(?:powershell|pwsh)(?:\.exe)?$/i.test(shellPath)) {
+    return 'powershell';
+  }
+  return 'posix';
 }
 
-export function buildZellijAttachCommand(sessionName: string): string {
-  return `zellij attach --create ${quoteForShell(sessionName)}`;
+export function quoteForTerminalShell(value: string, flavor: TerminalShellFlavor): string {
+  return flavor === 'powershell'
+    ? quoteForPowerShell(value)
+    : quoteForPosixShell(value);
 }
 
-export function buildZellijExistingSessionAttachCommand(sessionName: string): string {
-  return `zellij attach ${quoteForShell(sessionName)}`;
+export function buildTmuxAttachCommand(sessionName: string, flavor: TerminalShellFlavor = terminalShellFlavor(undefined)): string {
+  return `tmux new-session -A -s ${quoteForTerminalShell(sessionName, flavor)}`;
+}
+
+export function buildTmuxExistingSessionAttachCommand(sessionName: string, flavor: TerminalShellFlavor = terminalShellFlavor(undefined)): string {
+  return `tmux attach -t ${quoteForTerminalShell(sessionName, flavor)}`;
+}
+
+export function buildZellijAttachCommand(sessionName: string, flavor: TerminalShellFlavor = terminalShellFlavor(undefined)): string {
+  return `zellij attach --create ${quoteForTerminalShell(sessionName, flavor)}`;
+}
+
+export function buildZellijExistingSessionAttachCommand(sessionName: string, flavor: TerminalShellFlavor = terminalShellFlavor(undefined)): string {
+  return `zellij attach ${quoteForTerminalShell(sessionName, flavor)}`;
 }
 
 export function splitShellLike(input: string): string[] {

@@ -24,6 +24,11 @@ npm run start
 
 VS Code 调试：用 VS Code 打开本目录，选择 `Debug Workspace Session Terminals Extension`，按 F5。
 
+## 平台支持
+
+- Zellij：支持 Linux/WSL/Remote-SSH，也支持 Windows 本地 zellij。Windows 本地附加终端会使用 PowerShell 兼容命令。
+- Tmux：支持 Linux/WSL/Remote-SSH；不支持 Windows 原生 tmux。
+
 ## 配置
 
 - `workspaceSessionTerminals.autoAttachRememberedTerminals`: 默认 `true`，打开工作区时自动附加已记住的 tmux/zellij 会话终端。

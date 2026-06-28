@@ -101,6 +101,8 @@ export interface CreateTerminalRequest {
   kind?: WorkspaceTerminalKind;
   sessionName?: string;
   cwd?: string;
+  shellPath?: string;
+  shellArgs?: string[];
   reveal?: boolean;
   location?: SavedTerminalLocation;
   attachMode?: 'attach' | 'createOrAttach' | 'none';

@@ -11,7 +11,8 @@ import {
   buildZellijExistingSessionAttachCommand,
   inferMultiplexerCommand,
   kindFromTerminalName,
-  normalizeLocationKind
+  normalizeLocationKind,
+  terminalShellFlavor
 } from './shell';
 import { MessageTreeItem } from './treeItems';
 import type {
@@ -107,9 +108,13 @@ export class WorkspaceTerminalManager implements vscode.TreeDataProvider<Workspa
     }
 
     const cwd = request.cwd ?? defaultWorkspaceCwd();
+    const shellPath = request.shellPath ?? defaultShellPath(kind);
+    const shellArgs = request.shellArgs;
     const terminal = vscode.window.createTerminal({
       name: terminalName(kind, sessionName),
       cwd,
+      shellPath,
+      shellArgs,
       location: locationForCreate(request.location),
       isTransient: true
     });
@@ -118,13 +123,15 @@ export class WorkspaceTerminalManager implements vscode.TreeDataProvider<Workspa
       kind,
       sessionName,
       cwd,
+      shellPath,
+      shellArgs,
       location: normalizeLocationKind(request.location)
     });
     if (!snapshot) {
       return undefined;
     }
 
-    const attachCommand = attachCommandFor(kind, sessionName, request.attachMode);
+    const attachCommand = attachCommandFor(kind, sessionName, request.attachMode, shellPath);
     if (attachCommand) {
       terminal.sendText(attachCommand);
     }
@@ -524,9 +531,12 @@ export class WorkspaceTerminalManager implements vscode.TreeDataProvider<Workspa
       return false;
     }
 
+    const shellPath = snapshot.shellPath ?? defaultShellPath(snapshot.kind);
     const terminal = vscode.window.createTerminal({
       name: snapshot.name,
       cwd: snapshot.cwd,
+      shellPath,
+      shellArgs: snapshot.shellArgs,
       location: locationForCreate(snapshot.location),
       isTransient: true
     });
@@ -539,7 +549,7 @@ export class WorkspaceTerminalManager implements vscode.TreeDataProvider<Workspa
       closedAt: undefined
     });
 
-    const attachCommand = attachCommandFor(snapshot.kind, snapshot.sessionName, 'attach');
+    const attachCommand = attachCommandFor(snapshot.kind, snapshot.sessionName, 'attach', shellPath);
     if (attachCommand) {
       terminal.sendText(attachCommand);
     }
@@ -680,7 +690,8 @@ function terminalName(kind: WorkspaceTerminalKind, sessionName?: string): string
 function attachCommandFor(
   kind: WorkspaceTerminalKind,
   sessionName?: string,
-  mode: 'attach' | 'createOrAttach' | 'none' = 'createOrAttach'
+  mode: 'attach' | 'createOrAttach' | 'none' = 'createOrAttach',
+  shellPath?: string
 ): string | undefined {
   if (!sessionName) {
     return undefined;
@@ -688,16 +699,24 @@ function attachCommandFor(
   if (mode === 'none') {
     return undefined;
   }
+  const shellFlavor = terminalShellFlavor(shellPath);
   if (kind === 'zellij') {
     return mode === 'attach'
-      ? buildZellijExistingSessionAttachCommand(sessionName)
-      : buildZellijAttachCommand(sessionName);
+      ? buildZellijExistingSessionAttachCommand(sessionName, shellFlavor)
+      : buildZellijAttachCommand(sessionName, shellFlavor);
   }
   if (kind === 'tmux') {
     return mode === 'attach'
-      ? buildTmuxExistingSessionAttachCommand(sessionName)
-      : buildTmuxAttachCommand(sessionName);
+      ? buildTmuxExistingSessionAttachCommand(sessionName, shellFlavor)
+      : buildTmuxAttachCommand(sessionName, shellFlavor);
   }
+}
+
+function defaultShellPath(kind: WorkspaceTerminalKind): string | undefined {
+  if (process.platform === 'win32' && kind === 'zellij') {
+    return 'powershell.exe';
+  }
+  return undefined;
 }
 
 function terminalOptions(terminal: vscode.Terminal): Readonly<vscode.TerminalOptions> | undefined {

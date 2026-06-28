@@ -507,13 +507,13 @@ export class TerminalManagerController implements vscode.Disposable {
   }
 
   private ensureShellRuntime(kind: MultiplexerKind): boolean {
-    if (process.platform !== 'win32') {
+    if (process.platform !== 'win32' || kind === 'zellij') {
       return true;
     }
 
     const message = [
-      `当前扩展运行在 Windows 本地，不能直接管理 ${kind} 会话。`,
-      '请在 Remote - SSH / WSL / Linux 窗口中安装并运行此扩展。'
+      '当前扩展运行在 Windows 本地，不能直接管理 tmux 会话。',
+      '请在 Remote - SSH / WSL / Linux 窗口中使用 tmux。'
     ].join(' ');
     this.status = message;
     this.record('workspace.runtime.unsupported', {
