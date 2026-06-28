@@ -57,7 +57,7 @@ export class ZellijService {
         throw error;
       }
     }
-    await this.refresh();
+    await this.refreshAfterSessionRemoval(sessionName);
   }
 
   public async deleteSession(sessionName: string): Promise<void> {
@@ -69,7 +69,7 @@ export class ZellijService {
         throw error;
       }
     }
-    await this.refresh();
+    await this.refreshAfterSessionRemoval(sessionName);
   }
 
   private async requireZellij(): Promise<void> {
@@ -94,6 +94,18 @@ export class ZellijService {
         ? 'zellij is not installed or not in PATH.'
         : errorMessage(error);
       return false;
+    }
+  }
+
+  private async refreshAfterSessionRemoval(sessionName: string): Promise<void> {
+    try {
+      await this.refresh();
+    } catch (error) {
+      if (!isMissingZellijSession(error)) {
+        throw error;
+      }
+      this.sessions = this.sessions.filter((session) => session.name !== sessionName);
+      this.lastError = undefined;
     }
   }
 
@@ -124,5 +136,5 @@ export class ZellijService {
 }
 
 function isMissingZellijSession(error: unknown): boolean {
-  return /Session: ".*" not found\.|No session named ".*" found\./.test(errorMessage(error));
+  return /Session: ".*" not found\.|No session named ".*" found\.|Os \{ code: 2, kind: NotFound, message: /.test(errorMessage(error));
 }
