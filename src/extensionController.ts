@@ -207,6 +207,9 @@ export class TerminalManagerController implements vscode.Disposable {
       if (!sessionName) {
         return;
       }
+      if (!this.ensureShellRuntime('zellij')) {
+        return;
+      }
       await this.zellijService.createSession(sessionName);
       await this.workspaceManager.createTerminal({
         kind: 'zellij',
@@ -224,6 +227,9 @@ export class TerminalManagerController implements vscode.Disposable {
     await this.runCommand('command.zellijAttach', async () => {
       const sessionName = await this.resolveZellijSessionFromArg(arg);
       if (!sessionName) {
+        return;
+      }
+      if (!this.ensureShellRuntime('zellij')) {
         return;
       }
       await this.workspaceManager.createTerminal({
@@ -247,6 +253,9 @@ export class TerminalManagerController implements vscode.Disposable {
       if (!newName || newName === sessionName) {
         return;
       }
+      if (!this.ensureShellRuntime('zellij')) {
+        return;
+      }
 
       await this.zellijService.renameSession(sessionName, newName);
       await this.workspaceManager.renameSession('zellij', sessionName, newName, 'zellij.rename');
@@ -267,7 +276,7 @@ export class TerminalManagerController implements vscode.Disposable {
       }
       await this.zellijService.killSession(sessionName);
       await this.workspaceManager.unregisterSession('zellij', sessionName, 'zellij.kill');
-      await this.zellijProvider.refreshNow();
+      this.zellijProvider.refreshView();
       this.status = `Killed zellij session ${sessionName}`;
     });
     return this.getState();
@@ -284,7 +293,7 @@ export class TerminalManagerController implements vscode.Disposable {
       }
       await this.zellijService.deleteSession(sessionName);
       await this.workspaceManager.unregisterSession('zellij', sessionName, 'zellij.delete');
-      await this.zellijProvider.refreshNow();
+      this.zellijProvider.refreshView();
       this.status = `Deleted zellij session ${sessionName}`;
     });
     return this.getState();
@@ -312,6 +321,9 @@ export class TerminalManagerController implements vscode.Disposable {
       if (!sessionName) {
         return;
       }
+      if (!this.ensureShellRuntime('tmux')) {
+        return;
+      }
       await this.tmuxService.createSession(sessionName);
       await this.workspaceManager.createTerminal({
         kind: 'tmux',
@@ -329,6 +341,9 @@ export class TerminalManagerController implements vscode.Disposable {
     await this.runCommand('command.tmuxAttach', async () => {
       const target = await this.resolveTmuxTarget(item);
       if (!target) {
+        return;
+      }
+      if (!this.ensureShellRuntime('tmux')) {
         return;
       }
 
@@ -360,6 +375,9 @@ export class TerminalManagerController implements vscode.Disposable {
       }
       const newName = await this.resolveRenameSessionName('tmux', sessionName, item);
       if (!newName || newName === sessionName) {
+        return;
+      }
+      if (!this.ensureShellRuntime('tmux')) {
         return;
       }
       await this.tmuxService.renameSession(sessionName, newName);
@@ -486,6 +504,25 @@ export class TerminalManagerController implements vscode.Disposable {
     this.record('command.tmuxToggleAutoRefresh', { enabled });
     vscode.window.showInformationMessage(this.status);
     return this.getState();
+  }
+
+  private ensureShellRuntime(kind: MultiplexerKind): boolean {
+    if (process.platform !== 'win32') {
+      return true;
+    }
+
+    const message = [
+      `当前扩展运行在 Windows 本地，不能直接管理 ${kind} 会话。`,
+      '请在 Remote - SSH / WSL / Linux 窗口中安装并运行此扩展。'
+    ].join(' ');
+    this.status = message;
+    this.record('workspace.runtime.unsupported', {
+      kind,
+      platform: process.platform,
+      remoteName: vscode.env.remoteName
+    });
+    vscode.window.showErrorMessage(message);
+    return false;
   }
 
   private async runCommand(name: string, operation: () => Promise<void>): Promise<void> {
