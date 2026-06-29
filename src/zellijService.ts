@@ -1,5 +1,10 @@
-import { errorMessage, execFileText, isMissingExecutable } from './processRunner';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { errorMessage, execFileText, isMissingExecutable, isProcessTimeout } from './processRunner';
 import type { BackendState, ZellijSession } from './types';
+
+const ZELLIJ_SESSION_REMOVAL_TIMEOUT_MS = 4000;
+const ZELLIJ_CONTRACT_VERSION = 'contract_version_1';
 
 export class ZellijService {
   private installed: boolean | undefined;
@@ -51,11 +56,12 @@ export class ZellijService {
   public async killSession(sessionName: string): Promise<void> {
     await this.requireZellij();
     try {
-      await execFileText('zellij', ['kill-session', sessionName]);
+      await execFileText('zellij', ['kill-session', sessionName], { timeoutMs: ZELLIJ_SESSION_REMOVAL_TIMEOUT_MS });
     } catch (error) {
-      if (!isMissingZellijSession(error)) {
+      if (!isRemovableStaleZellijSession(error)) {
         throw error;
       }
+      await cleanupStaleZellijSocket(sessionName);
     }
     await this.refreshAfterSessionRemoval(sessionName);
   }
@@ -63,11 +69,12 @@ export class ZellijService {
   public async deleteSession(sessionName: string): Promise<void> {
     await this.requireZellij();
     try {
-      await execFileText('zellij', ['delete-session', '--force', sessionName]);
+      await execFileText('zellij', ['delete-session', '--force', sessionName], { timeoutMs: ZELLIJ_SESSION_REMOVAL_TIMEOUT_MS });
     } catch (error) {
-      if (!isMissingZellijSession(error)) {
+      if (!isRemovableStaleZellijSession(error)) {
         throw error;
       }
+      await cleanupStaleZellijSocket(sessionName);
     }
     await this.refreshAfterSessionRemoval(sessionName);
   }
@@ -101,9 +108,10 @@ export class ZellijService {
     try {
       await this.refresh();
     } catch (error) {
-      if (!isMissingZellijSession(error)) {
+      if (!isRemovableStaleZellijSession(error)) {
         throw error;
       }
+      await cleanupStaleZellijSocket(sessionName);
       this.sessions = this.sessions.filter((session) => session.name !== sessionName);
       this.lastError = undefined;
     }
@@ -137,4 +145,52 @@ export class ZellijService {
 
 function isMissingZellijSession(error: unknown): boolean {
   return /Session: ".*" not found\.|No session named ".*" found\.|Os \{ code: 2, kind: NotFound, message: /.test(errorMessage(error));
+}
+
+function isRemovableStaleZellijSession(error: unknown): boolean {
+  return isMissingZellijSession(error) || isProcessTimeout(error);
+}
+
+async function cleanupStaleZellijSocket(sessionName: string): Promise<void> {
+  if (process.platform === 'win32' || !isSafeSocketName(sessionName)) {
+    return;
+  }
+
+  const socketPath = path.join(zellijSocketRoot(), ZELLIJ_CONTRACT_VERSION, sessionName);
+  let stat: Awaited<ReturnType<typeof fs.lstat>>;
+  try {
+    stat = await fs.lstat(socketPath);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+
+  if (!stat.isSocket() && !stat.isFile()) {
+    return;
+  }
+  await fs.rm(socketPath, { force: true });
+}
+
+function zellijSocketRoot(): string {
+  const runtimeDir = process.env.XDG_RUNTIME_DIR ?? defaultRuntimeDir();
+  return path.join(runtimeDir, 'zellij');
+}
+
+function defaultRuntimeDir(): string {
+  const getuid = process.getuid;
+  return typeof getuid === 'function'
+    ? path.join('/run/user', String(getuid()))
+    : '/tmp';
+}
+
+function isSafeSocketName(sessionName: string): boolean {
+  return Boolean(sessionName)
+    && !sessionName.includes('\0')
+    && !sessionName.includes('/')
+    && !sessionName.includes('\\')
+    && sessionName !== '.'
+    && sessionName !== '..';
 }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 import { COMMANDS } from '../support/extension-contract.mjs';
 import {
   collectUiSnapshot,
@@ -91,6 +92,36 @@ describe('Workspace Session Terminals extension', () => {
     assert.equal(state.zellij.sessions.some((session) => session.name === missingName), false);
   });
 
+  it('cleans up a stale zellij socket when deleting a zombie session', async () => {
+    const initialState = await dumpExtensionState();
+    if (!initialState.zellij.installed) {
+      assert.ok(initialState.events.length >= 0);
+      return;
+    }
+
+    const zombieName = `vtm-e2e-zombie-zellij-${Date.now()}`;
+    const socketPath = zellijSocketPath(zombieName);
+    createStaleUnixSocket(socketPath);
+    assert.equal(fs.existsSync(socketPath), true);
+
+    try {
+      await browser.executeWorkbench(
+        (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
+        COMMANDS.zellijDelete,
+        { sessionName: zombieName, confirm: false, closeTerminals: false }
+      );
+
+      const state = await dumpExtensionState();
+      assert.ok(state.events.some((event) => event.name === 'command.zellijDelete'));
+      assert.equal(fs.existsSync(socketPath), false);
+      assert.equal(state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zombieName), false);
+    } finally {
+      cleanupExternal('zellij', ['delete-session', '--force', zombieName]);
+      cleanupExternal('zellij', ['kill-session', zombieName]);
+      cleanupSocket(socketPath);
+    }
+  });
+
   it('creates and cleans real tmux/zellij sessions when the backends are available', async () => {
     const runId = Date.now();
     const tmuxName = `vtm-e2e-tmux-${runId}`;
@@ -133,39 +164,35 @@ describe('Workspace Session Terminals extension', () => {
       }
 
       if (initialState.zellij.installed) {
-        await browser.executeWorkbench(
+        const createState = await browser.executeWorkbench(
           (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
           COMMANDS.zellijNew,
           { sessionName: zellijName, reveal: false, attachMode: 'none' }
         );
-        await browser.waitUntil(async () => {
-          const state = await dumpExtensionState();
-          return state.zellij.sessions.some((session) => session.name === zellijName)
-            && state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijName);
-        }, {
-          timeout: 20000,
-          timeoutMsg: 'zellij session was not reflected in zellij and workspace state'
-        });
+        assert.equal(createState.zellij.sessions.some((session) => session.name === zellijName), true);
+        assert.equal(
+          createState.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijName),
+          true
+        );
 
-        await browser.executeWorkbench(
+        const renameState = await browser.executeWorkbench(
           (vscode, command, arg) => vscode.commands.executeCommand(command, arg),
           COMMANDS.zellijRename,
           { sessionName: zellijName, newName: zellijRenamedName }
         );
-        await browser.waitUntil(async () => {
-          const state = await dumpExtensionState();
-          return state.zellij.sessions.some((session) => session.name === zellijRenamedName)
-            && !state.zellij.sessions.some((session) => session.name === zellijName)
-            && state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijRenamedName)
-            && !state.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijName);
-        }, {
-          timeout: 20000,
-          timeoutMsg: 'zellij session rename was not reflected in zellij and workspace state'
-        });
+        assert.equal(renameState.zellij.sessions.some((session) => session.name === zellijRenamedName), true);
+        assert.equal(renameState.zellij.sessions.some((session) => session.name === zellijName), false);
+        assert.equal(
+          renameState.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijRenamedName),
+          true
+        );
+        assert.equal(
+          renameState.workspace.registeredTerminals.some((terminal) => terminal.kind === 'zellij' && terminal.sessionName === zellijName),
+          false
+        );
       }
 
-      const finalState = await dumpExtensionState();
-      assert.ok(initialState.tmux.installed || initialState.zellij.installed || finalState.events.length > 0);
+      assert.ok(initialState.tmux.installed || initialState.zellij.installed);
     } finally {
       if (initialState.tmux.installed) {
         cleanupExternal('tmux', ['kill-session', '-t', tmuxName]);
@@ -186,6 +213,35 @@ function cleanupExternal(command, args) {
     execFileSync(command, args, { stdio: 'ignore' });
   } catch {
     // Best-effort cleanup for tests where the VS Code renderer is already gone.
+  }
+}
+
+function zellijSocketPath(sessionName) {
+  const runtimeDir = process.env.XDG_RUNTIME_DIR || path.join('/run/user', String(process.getuid?.() ?? 0));
+  return path.join(runtimeDir, 'zellij', 'contract_version_1', sessionName);
+}
+
+function createStaleUnixSocket(socketPath) {
+  fs.mkdirSync(path.dirname(socketPath), { recursive: true });
+  cleanupSocket(socketPath);
+  execFileSync('python3', ['-c', [
+    'import os, socket, sys',
+    'path = sys.argv[1]',
+    'try:',
+    '    os.unlink(path)',
+    'except FileNotFoundError:',
+    '    pass',
+    'sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)',
+    'sock.bind(path)',
+    'sock.close()'
+  ].join('\n'), socketPath]);
+}
+
+function cleanupSocket(socketPath) {
+  try {
+    fs.rmSync(socketPath, { force: true });
+  } catch {
+    // Best-effort cleanup.
   }
 }
 

@@ -12,6 +12,8 @@ export interface ProcessRunOptions {
 
 export interface ProcessFailure extends Error {
   code?: string | number;
+  killed?: boolean;
+  signal?: string | null;
   stdout?: string;
   stderr?: string;
 }
@@ -62,4 +64,15 @@ export function isMissingExecutable(error: unknown): boolean {
 
   const failure = error as ProcessFailure;
   return failure.code === 'ENOENT';
+}
+
+export function isProcessTimeout(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const failure = error as ProcessFailure;
+  return failure.killed === true
+    || failure.signal === 'SIGTERM'
+    || /timed out|timeout/i.test(error.message);
 }
